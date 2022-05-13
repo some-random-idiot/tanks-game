@@ -1,2 +1,5 @@
 # TANKS
-Final project for SSD Laboratory.
+A game about tanks shooting tanks (and bases).
+
+## Running
+Requires Java 17.
