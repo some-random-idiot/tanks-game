@@ -3,10 +3,9 @@ package game;
 import javax.swing.*;
 import java.awt.*;
 import java.util.Observable;
-import java.util.Observer;
 
 public class World extends Observable {
-    private final String initialLayout[][] = {
+    private final String[][] initialLayout = {
             // x = nothing, b = brick, s = steel, t = tree, hq = base
             new String[] {"x", "x", "x", "x", "b", "b", "x", "x", "b", "x", "x", "x", "x"}, // 1
             new String[] {"x", "t", "t", "b", "b", "x", "x", "x", "b", "x", "x", "x", "x"}, // 2
@@ -46,16 +45,16 @@ public class World extends Observable {
                 System.out.println(initialLayout[y][x]);
                 JLabel tile = new JLabel();
                 if ("b".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("C:\\Users\\sitti\\IdeaProjects\\tanks-game\\asset\\sprite\\brick.png"));
+                    tile = new JLabel(new ImageIcon("./asset/sprite/brick.png"));
                 }
                 if ("s".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("C:\\Users\\sitti\\IdeaProjects\\tanks-game\\asset\\sprite\\steel.png"));
+                    tile = new JLabel(new ImageIcon("./asset/sprite/steel.png"));
                 }
                 if ("t".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("C:\\Users\\sitti\\IdeaProjects\\tanks-game\\asset\\sprite\\tree.png"));
+                    tile = new JLabel(new ImageIcon("./asset/sprite/tree.png"));
                 }
                 if ("hq".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("C:\\Users\\sitti\\IdeaProjects\\tanks-game\\asset\\sprite\\base.png"));
+                    tile = new JLabel(new ImageIcon("./asset/sprite/base.png"));
                 }
                 tile.setBounds(x * 64, y * 64, 64, 64);
                 rootPanel.add(tile);
