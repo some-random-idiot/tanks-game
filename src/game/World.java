@@ -1,9 +1,12 @@
 package game;
 
 import tanks.PlayerTank;
+import tanks.commands.*;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.util.Observable;
 
 public class World extends Observable {
@@ -24,13 +27,23 @@ public class World extends Observable {
     };
     private JFrame rootWindow;
     private JPanel rootPanel;
+
     private final String mode;
+
+    private PlayerTank player1;
+    private PlayerTank player2;
+
+    private MoveUpCommand moveUpCommandP1, moveUpCommandP2;
+    private MoveDownCommand moveDownCommandP1, moveDownCommandP2;
+    private MoveLeftCommand moveLeftCommandP1, moveLeftCommandP2;
+    private MoveRightCommand moveRightCommandP1, moveRightCommandP2;
 
     public World(String mode) {
         this.mode = mode;
 
         initWindow();
         initLevel();
+        setKeyBindings();
 
         rootWindow.add(rootPanel);
         rootWindow.setVisible(true);
@@ -41,18 +54,19 @@ public class World extends Observable {
         rootWindow = new JFrame("TANKS");
         rootWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         rootWindow.setSize(847, 803);
+        rootWindow.setResizable(false);
 
         // Don't use layout managers. They make positioning stuff a headache.
         rootPanel = new JPanel(null);
         rootPanel.setBackground(Color.BLACK);
-
     }
 
     private void initLevel() {
-        Integer p1X = null;
-        Integer p1Y = null;
-        Integer p2X = null;
-        Integer p2Y = null;
+        // Build the level from the initialLayout jagged array.
+        int p1X = 0;
+        int p1Y = 0;
+        int p2X = 0;
+        int p2Y = 0;
 
         for (int y = 0; y < initialLayout.length; y++) {
             for (int x = 0; x < initialLayout[y].length; x++) {
@@ -83,8 +97,64 @@ public class World extends Observable {
         }
 
         if (mode.equals("mp")) {
-            rootPanel.add(new PlayerTank(p2X, p2Y, 2));
+            player2 = new PlayerTank(p2X, p2Y, 2);
+            rootPanel.add(player2);
         }
-        rootPanel.add(new PlayerTank(p1X, p1Y, 1));
+        player1 = new PlayerTank(p1X, p1Y, 1);
+        rootPanel.add(player1);
+
+        initCommands();
+    }
+
+    private void initCommands() {
+        moveUpCommandP1 = new MoveUpCommand(player1);
+        moveDownCommandP1 = new MoveDownCommand(player1);
+        moveLeftCommandP1 = new MoveLeftCommand(player1);
+        moveRightCommandP1 = new MoveRightCommand(player1);
+
+        if (mode.equals("mp")) {
+            moveUpCommandP2 = new MoveUpCommand(player2);
+            moveDownCommandP2 = new MoveDownCommand(player2);
+            moveLeftCommandP2 = new MoveLeftCommand(player2);
+            moveRightCommandP2 = new MoveRightCommand(player2);
+        }
+    }
+
+    private void setKeyBindings() {
+        // Set up key bindings.
+        rootWindow.addKeyListener(new KeyAdapter() {
+
+            @Override
+            public void keyPressed(KeyEvent e) {
+                super.keyPressed(e);
+                if (e.getKeyCode() == KeyEvent.VK_W) {
+                    moveUpCommandP1.execute();
+                } else if (e.getKeyCode() == KeyEvent.VK_S) {
+                    moveDownCommandP1.execute();
+                } else if (e.getKeyCode() == KeyEvent.VK_A) {
+                    moveLeftCommandP1.execute();
+                } else if (e.getKeyCode() == KeyEvent.VK_D) {
+                    moveRightCommandP1.execute();
+                }
+            }
+        });
+
+        if (mode.equals("mp")) {
+            rootWindow.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    super.keyPressed(e);
+                    if (e.getKeyCode() == KeyEvent.VK_UP) {
+                        moveUpCommandP2.execute();
+                    } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                        moveDownCommandP2.execute();
+                    } else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+                        moveLeftCommandP2.execute();
+                    } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+                        moveRightCommandP2.execute();
+                    }
+                }
+            });
+        }
     }
 }
