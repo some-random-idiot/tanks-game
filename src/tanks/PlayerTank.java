@@ -27,8 +27,6 @@ public class PlayerTank extends JLabel implements GenericTank {
             @Override
             public void run() {
                 while (true) {
-                    System.out.println(direction);
-
                     switch (direction) {
                         case "UP" -> setBounds(getX(), getY() - speed, 64, 64);
                         case "DOWN" -> setBounds(getX(), getY() + speed, 64, 64);
