@@ -7,9 +7,9 @@ import javax.swing.*;
 public class TankShell extends JLabel {
     private final int speed = 2;
     private final String direction;
-    public boolean friendly;
+    public boolean friendly = false;
 
-    public TankShell(int x, int y, String direction) {
+    public TankShell(int x, int y, String direction, String friendly) {
         super();
         switch (direction) {
             case "UP" -> setIcon(TankSprites.shellSpriteUp);
@@ -19,6 +19,11 @@ public class TankShell extends JLabel {
         }
         setBounds(x, y, 64, 64);
         this.direction = direction;
+
+        if (friendly.equals("FRIENDLY")) {
+            this.friendly = true;
+        }
+
         initBallistic();
     }
 

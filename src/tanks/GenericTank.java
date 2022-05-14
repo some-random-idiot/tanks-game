@@ -7,5 +7,4 @@ public interface GenericTank {
     public void moveLeft();
     public void moveRight();
     public void stop();
-    public void shoot();
 }

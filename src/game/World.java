@@ -40,6 +40,8 @@ public class World extends Observable {
     private MoveLeftCommand moveLeftCommandP1, moveLeftCommandP2;
     private MoveRightCommand moveRightCommandP1, moveRightCommandP2;
 
+    boolean canShootP1 = true, canShootP2 = true;
+
     public World(String mode) {
         this.mode = mode;
 
@@ -99,6 +101,7 @@ public class World extends Observable {
         }
 
         if (mode.equals("mp")) {
+            // If multiplayer, then create two tanks.
             player2 = new PlayerTank(p2X, p2Y, 2);
             rootPanel.add(player2);
         }
@@ -139,7 +142,7 @@ public class World extends Observable {
                     moveRightCommandP1.execute();
                 }
 
-                if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                if (e.getKeyCode() == KeyEvent.VK_SHIFT && canShootP1) {
                     // Check tank icon instead of tank direction for bullet orientation.
                     String direction;
                     Icon tankIcon = player1.getIcon();
@@ -156,8 +159,9 @@ public class World extends Observable {
                         direction = "RIGHT";
                     }
 
-                    TankShell shell = new TankShell(player1.getX(), player1.getY(), direction);
+                    TankShell shell = new TankShell(player1.getX(), player1.getY(), direction, "FRIENDLY");
                     rootPanel.add(shell);
+                    reload(1);
                 }
             }
         });
@@ -177,7 +181,7 @@ public class World extends Observable {
                         moveRightCommandP2.execute();
                     }
 
-                    if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                    if (e.getKeyCode() == KeyEvent.VK_SPACE && canShootP2) {
                         // Check tank icon instead of tank direction for bullet orientation.
                         String direction;
                         Icon tankIcon = player2.getIcon();
@@ -194,11 +198,38 @@ public class World extends Observable {
                             direction = "RIGHT";
                         }
 
-                        TankShell shell = new TankShell(player2.getX(), player2.getY(), direction);
+                        TankShell shell = new TankShell(player2.getX(), player2.getY(), direction, "FRIENDLY");
                         rootPanel.add(shell);
+                        reload(2);
                     }
                 }
             });
         }
+    }
+
+    private void reload(int playerNumber) {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                if (playerNumber == 1) {
+                    canShootP1 = false;
+                }
+                else {
+                    canShootP2 = false;
+                }
+                try {
+                    Thread.sleep(1000 * PlayerTank.reloadTime);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+                if (playerNumber == 1) {
+                    canShootP1 = true;
+                }
+                else {
+                    canShootP2 = true;
+                }
+            }
+        };
+        thread.start();
     }
 }

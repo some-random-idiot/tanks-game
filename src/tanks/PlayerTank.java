@@ -7,6 +7,7 @@ import javax.swing.*;
 public class PlayerTank extends JLabel implements GenericTank {
     private final int playerNumber;
     private final int speed = 1;
+    public static int reloadTime = 3; // In seconds.
     private String direction = "IDLE";
 
     public String getDirection() {
@@ -118,11 +119,5 @@ public class PlayerTank extends JLabel implements GenericTank {
     @Override
     public void stop() {
         direction = "IDLE";
-    }
-
-
-    @Override
-    public void shoot() {
-        TankShell shell = new TankShell(getX(), getY(), direction);
     }
 }
