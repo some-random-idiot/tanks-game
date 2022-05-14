@@ -1,8 +1,6 @@
 package tile;
 
-import javax.swing.*;
-
-public class BrickTile extends JLabel implements GenericTile {
+public class BrickTile extends GenericTile {
     public BrickTile() {
         super(TileSprites.brickSprite);
     }

@@ -8,6 +8,7 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.Objects;
 import java.util.Observable;
 
 public class World extends Observable {
@@ -49,17 +50,18 @@ public class World extends Observable {
         initWindow();
         initLevel();
         setKeyBindings();
+        initCollisionChecker();
 
         rootWindow.add(rootPanel);
         rootWindow.setVisible(true);
 
         // TODO [DEBUG] Print tile layout.
-        for (GenericTile[] genericTiles : tileLayout) {
-            for (GenericTile genericTile : genericTiles) {
-                System.out.print(genericTile + " ");
-            }
-            System.out.println();
-        }
+//        for (GenericTile[] genericTiles : tileLayout) {
+//            for (GenericTile genericTile : genericTiles) {
+//                System.out.print(genericTile + " ");
+//            }
+//            System.out.println();
+//        }
     }
 
     private void initWindow() {
@@ -244,5 +246,47 @@ public class World extends Observable {
             }
         };
         thread.start();
+    }
+
+    private void initCollisionChecker() {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                while (true) {
+                    for (int i = 0; i < tileLayout.length; i++) {
+                        for (int j = 0; j < tileLayout[i].length; j++) {
+                            if (tileLayout[i][j] != null) {
+                                checkCollision(i, j, player1);
+                                if (Objects.equals(mode, "mp")) {
+                                    checkCollision(i, j, player2);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        };
+        thread.start();
+    }
+
+    private void checkCollision(int i, int j, GenericTank tank) {
+        if (tank.getBounds().intersects(tileLayout[i][j].getBounds()) ||
+            tank.getX() >= rootPanel.getWidth() - 10 ||
+            tank.getY() >= rootPanel.getHeight() - 57 ||
+            tank.getX() <= 0 || tank.getY() <= 0)
+        {
+            String direction = tank.getDirection();
+            stopTankCollided(direction, tank);
+        }
+    }
+
+    private void stopTankCollided(String direction, GenericTank tank) {
+        tank.stop();
+        switch (direction) {
+            case "UP" -> tank.setBounds(tank.getX(), tank.getY() + 3, tank.getWidth(), tank.getHeight());
+            case "DOWN" -> tank.setBounds(tank.getX(), tank.getY() - 3, tank.getWidth(), tank.getHeight());
+            case "LEFT" -> tank.setBounds(tank.getX() + 3, tank.getY(), tank.getWidth(), tank.getHeight());
+            case "RIGHT" -> tank.setBounds(tank.getX() - 3, tank.getY(), tank.getWidth(), tank.getHeight());
+        }
     }
 }

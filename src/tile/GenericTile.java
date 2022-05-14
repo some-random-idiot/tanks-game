@@ -1,5 +1,8 @@
 package tile;
+import javax.swing.*;
 
-public interface GenericTile {
-    void setBounds(int x, int y, int width, int height);
+public abstract class GenericTile extends JLabel {
+    public GenericTile(ImageIcon sprite) {
+        super(sprite);
+    }
 }

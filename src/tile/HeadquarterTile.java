@@ -1,8 +1,6 @@
 package tile;
 
-import javax.swing.*;
-
-public class HeadquarterTile extends JLabel implements GenericTile {
+public class HeadquarterTile extends GenericTile {
     public HeadquarterTile() {
         super(TileSprites.baseSprite);
     }

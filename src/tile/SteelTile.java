@@ -1,8 +1,6 @@
 package tile;
 
-import javax.swing.*;
-
-public class SteelTile extends JLabel implements GenericTile {
+public class SteelTile extends GenericTile {
     public SteelTile() {
         super(TileSprites.steelSprite);
     }

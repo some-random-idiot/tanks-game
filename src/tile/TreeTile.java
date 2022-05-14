@@ -1,8 +1,6 @@
 package tile;
 
-import javax.swing.*;
-
-public class TreeTile extends JLabel implements GenericTile {
+public class TreeTile extends GenericTile {
     public TreeTile() {
         super(TileSprites.treeSprite);
     }

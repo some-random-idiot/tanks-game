@@ -2,9 +2,7 @@ package tanks;
 
 import game.Director;
 
-import javax.swing.*;
-
-public class PlayerTank extends JLabel implements GenericTank {
+public class PlayerTank extends GenericTank {
     private final int playerNumber;
     private final int speed = 1;
     public static int reloadTime = 3; // In seconds.
@@ -23,7 +21,7 @@ public class PlayerTank extends JLabel implements GenericTank {
             case 2 -> setIcon(TankSprites.player2SpriteUp);
         }
 
-        setBounds(x, y, 64, 64);
+        setBounds(x, y, 60, 60);
         initPositionUpdater();
     }
 
@@ -35,10 +33,10 @@ public class PlayerTank extends JLabel implements GenericTank {
             public void run() {
                 while (true) {
                     switch (direction) {
-                        case "UP" -> setBounds(getX(), getY() - speed, 64, 64);
-                        case "DOWN" -> setBounds(getX(), getY() + speed, 64, 64);
-                        case "LEFT" -> setBounds(getX() - speed, getY(), 64, 64);
-                        case "RIGHT" -> setBounds(getX() + speed, getY(), 64, 64);
+                        case "UP" -> setBounds(getX(), getY() - speed, getWidth(), getWidth());
+                        case "DOWN" -> setBounds(getX(), getY() + speed, getWidth(), getWidth());
+                        case "LEFT" -> setBounds(getX() - speed, getY(), getWidth(), getWidth());
+                        case "RIGHT" -> setBounds(getX() + speed, getY(), getWidth(), getWidth());
                     }
 
                     try {
