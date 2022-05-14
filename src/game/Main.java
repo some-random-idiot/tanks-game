@@ -14,7 +14,7 @@ public class Main {
         menuWindow.setResizable(false);
 
         JLabel titleText = new JLabel("TANKS");
-        titleText.setFont(new Font("Courier New", Font.BOLD, 100));
+        titleText.setFont(new Font("Courier New", Font.BOLD, 150));
         titleText.setHorizontalAlignment(JLabel.CENTER);
         menuWindow.add(titleText, BorderLayout.NORTH);
 

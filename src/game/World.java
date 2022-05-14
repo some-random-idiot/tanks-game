@@ -1,9 +1,8 @@
 package game;
 
-import tanks.PlayerTank;
-import tanks.TankShell;
-import tanks.TankSprites;
+import tanks.*;
 import tanks.commands.*;
+import tile.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -27,6 +26,8 @@ public class World extends Observable {
             new String[] {"x", "x", "b", "x", "t", "b", "b", "b", "b", "t", "b", "t", "t"}, // 11
             new String[] {"x", "x", "b", "x", "p1", "b", "hq", "b", "p2", "t", "t", "t", "x"}, // 12
     };
+    private GenericTile[][] tileLayout = new GenericTile[initialLayout.length][initialLayout[0].length];
+
     private JFrame rootWindow;
     private JPanel rootPanel;
 
@@ -51,6 +52,14 @@ public class World extends Observable {
 
         rootWindow.add(rootPanel);
         rootWindow.setVisible(true);
+
+        // TODO [DEBUG] Print tile layout.
+        for (GenericTile[] genericTiles : tileLayout) {
+            for (GenericTile genericTile : genericTiles) {
+                System.out.print(genericTile + " ");
+            }
+            System.out.println();
+        }
     }
 
     private void initWindow() {
@@ -74,18 +83,18 @@ public class World extends Observable {
 
         for (int y = 0; y < initialLayout.length; y++) {
             for (int x = 0; x < initialLayout[y].length; x++) {
-                JLabel tile = new JLabel();
+                GenericTile tile = null;
                 if ("b".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("./asset/sprite/brick.png"));
+                    tile = new BrickTile();
                 }
                 if ("s".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("./asset/sprite/steel.png"));
+                    tile = new SteelTile();
                 }
                 if ("t".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("./asset/sprite/tree.png"));
+                    tile = new TreeTile();
                 }
                 if ("hq".equals(initialLayout[y][x])) {
-                    tile = new JLabel(new ImageIcon("./asset/sprite/base.png"));
+                    tile = new HeadquarterTile();
                 }
                 if ("p1".equals(initialLayout[y][x])) {
                     p1X = x * 64;
@@ -95,8 +104,12 @@ public class World extends Observable {
                     p2X = x * 64;
                     p2Y = y * 64;
                 }
-                tile.setBounds(x * 64, y * 64, 64, 64);
-                rootPanel.add(tile);
+
+                if (tile != null) {
+                    tileLayout[y][x] = tile;
+                    tile.setBounds(x * 64, y * 64, 64, 64);
+                    rootPanel.add((Component) tile);
+                }
             }
         }
 
@@ -218,7 +231,7 @@ public class World extends Observable {
                     canShootP2 = false;
                 }
                 try {
-                    Thread.sleep(1000 * PlayerTank.reloadTime);
+                    Thread.sleep(1000L * PlayerTank.reloadTime);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
