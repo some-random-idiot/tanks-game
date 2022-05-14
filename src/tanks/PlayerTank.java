@@ -14,7 +14,20 @@ public class PlayerTank extends JLabel implements GenericTank {
 
     @Override
     public void move() {
-
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                while (true) {
+                    setBounds(getX() + 1, getY(), 64, 64);
+                    try {
+                        Thread.sleep(10);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        thread.start();
     }
 
     @Override
