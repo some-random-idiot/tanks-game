@@ -1,11 +1,17 @@
 package tanks;
 
+import game.Director;
+
 import javax.swing.*;
 
 public class PlayerTank extends JLabel implements GenericTank {
     private final int playerNumber;
     private final int speed = 1;
     private String direction = "IDLE";
+
+    public String getDirection() {
+        return direction;
+    }
 
     public PlayerTank(int x, int y, int playerNumber) {
         super();
@@ -35,7 +41,7 @@ public class PlayerTank extends JLabel implements GenericTank {
                     }
 
                     try {
-                        Thread.sleep(1000 / 60);
+                        Thread.sleep(Director.frameRate);
                     } catch (InterruptedException e) {
                         e.printStackTrace();
                     }
@@ -116,7 +122,7 @@ public class PlayerTank extends JLabel implements GenericTank {
 
 
     @Override
-    public void fire() {
-
+    public void shoot() {
+        TankShell shell = new TankShell(getX(), getY(), direction);
     }
 }

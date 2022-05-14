@@ -1,6 +1,8 @@
 package game;
 
 import tanks.PlayerTank;
+import tanks.TankShell;
+import tanks.TankSprites;
 import tanks.commands.*;
 
 import javax.swing.*;
@@ -136,6 +138,27 @@ public class World extends Observable {
                 } else if (e.getKeyCode() == KeyEvent.VK_D) {
                     moveRightCommandP1.execute();
                 }
+
+                if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                    // Check tank icon instead of tank direction for bullet orientation.
+                    String direction;
+                    Icon tankIcon = player1.getIcon();
+                    if (tankIcon == TankSprites.player1SpriteUp) {
+                        direction = "UP";
+                    }
+                    else if (tankIcon == TankSprites.player1SpriteDown) {
+                        direction = "DOWN";
+                    }
+                    else if (player1.getIcon() == TankSprites.player1SpriteLeft) {
+                        direction = "LEFT";
+                    }
+                    else {
+                        direction = "RIGHT";
+                    }
+
+                    TankShell shell = new TankShell(player1.getX(), player1.getY(), direction);
+                    rootPanel.add(shell);
+                }
             }
         });
 
@@ -152,6 +175,27 @@ public class World extends Observable {
                         moveLeftCommandP2.execute();
                     } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
                         moveRightCommandP2.execute();
+                    }
+
+                    if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                        // Check tank icon instead of tank direction for bullet orientation.
+                        String direction;
+                        Icon tankIcon = player2.getIcon();
+                        if (tankIcon == TankSprites.player2SpriteUp) {
+                            direction = "UP";
+                        }
+                        else if (tankIcon == TankSprites.player2SpriteDown) {
+                            direction = "DOWN";
+                        }
+                        else if (player2.getIcon() == TankSprites.player2SpriteLeft) {
+                            direction = "LEFT";
+                        }
+                        else {
+                            direction = "RIGHT";
+                        }
+
+                        TankShell shell = new TankShell(player2.getX(), player2.getY(), direction);
+                        rootPanel.add(shell);
                     }
                 }
             });
