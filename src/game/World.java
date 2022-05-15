@@ -8,6 +8,8 @@ import javax.swing.*;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.Observable;
 
@@ -27,7 +29,9 @@ public class World extends Observable {
             new String[] {"x", "x", "b", "x", "t", "b", "b", "b", "b", "t", "b", "t", "t"}, // 11
             new String[] {"x", "x", "b", "x", "p1", "b", "hq", "b", "p2", "t", "t", "t", "x"}, // 12
     };
-    private GenericTile[][] tileLayout = new GenericTile[initialLayout.length][initialLayout[0].length];
+    private int p1Xinitial,  p1Yinitial, p2Xinitial, p2Yinitial;
+
+    private final GenericTile[][] tileLayout = new GenericTile[initialLayout.length][initialLayout[0].length];
 
     private JFrame rootWindow;
     private JPanel rootPanel;
@@ -42,7 +46,7 @@ public class World extends Observable {
     private MoveLeftCommand moveLeftCommandP1, moveLeftCommandP2;
     private MoveRightCommand moveRightCommandP1, moveRightCommandP2;
 
-    boolean canShootP1 = true, canShootP2 = true;
+    private List<TankShell> activeShells = new ArrayList<>();
 
     public World(String mode) {
         this.mode = mode;
@@ -54,14 +58,6 @@ public class World extends Observable {
 
         rootWindow.add(rootPanel);
         rootWindow.setVisible(true);
-
-        // TODO [DEBUG] Print tile layout.
-//        for (GenericTile[] genericTiles : tileLayout) {
-//            for (GenericTile genericTile : genericTiles) {
-//                System.out.print(genericTile + " ");
-//            }
-//            System.out.println();
-//        }
     }
 
     private void initWindow() {
@@ -78,11 +74,6 @@ public class World extends Observable {
 
     private void initLevel() {
         // Build the level from the initialLayout jagged array.
-        int p1X = 0;
-        int p1Y = 0;
-        int p2X = 0;
-        int p2Y = 0;
-
         for (int y = 0; y < initialLayout.length; y++) {
             for (int x = 0; x < initialLayout[y].length; x++) {
                 GenericTile tile = null;
@@ -99,31 +90,33 @@ public class World extends Observable {
                     tile = new HeadquarterTile();
                 }
                 if ("p1".equals(initialLayout[y][x])) {
-                    p1X = x * 64;
-                    p1Y = y * 64;
+                    p1Xinitial = x * 64;
+                    p1Yinitial = y * 64;
                 }
                 if ("p2".equals(initialLayout[y][x])) {
-                    p2X = x * 64;
-                    p2Y = y * 64;
+                    p2Xinitial = x * 64;
+                    p2Yinitial = y * 64;
                 }
 
                 if (tile != null) {
                     tileLayout[y][x] = tile;
                     tile.setBounds(x * 64, y * 64, 64, 64);
-                    rootPanel.add((Component) tile);
+                    rootPanel.add(tile);
                 }
             }
         }
+        initPlayers();
+        initCommands();
+    }
 
+    private void initPlayers() {
         if (mode.equals("mp")) {
             // If multiplayer, then create two tanks.
-            player2 = new PlayerTank(p2X, p2Y, 2);
+            player2 = new PlayerTank(p2Xinitial, p2Yinitial, 2);
             rootPanel.add(player2);
         }
-        player1 = new PlayerTank(p1X, p1Y, 1);
+        player1 = new PlayerTank(p1Xinitial, p1Yinitial, 1);
         rootPanel.add(player1);
-
-        initCommands();
     }
 
     private void initCommands() {
@@ -140,6 +133,33 @@ public class World extends Observable {
         }
     }
 
+    public void reset() {
+        resetTiles();
+        resetPlayers();
+    }
+
+    private void resetTiles() {
+        // Reset the level.
+        for (GenericTile[] genericTiles : tileLayout) {
+            for (GenericTile genericTile : genericTiles) {
+                if (genericTile != null) {
+                    genericTile.reset();
+                }
+            }
+        }
+    }
+
+    private void resetPlayers() {
+        // Reset the players.
+        player1.resetOrientation();
+        player1.setBounds(p1Xinitial, p1Yinitial, player1.getWidth(), player1.getHeight());
+        if (mode.equals("mp")) {
+            player2.resetOrientation();
+            player2.setBounds(p2Xinitial, p2Yinitial, player2.getWidth(), player2.getHeight());
+        }
+    }
+
+
     private void setKeyBindings() {
         // Set up key bindings.
         rootWindow.addKeyListener(new KeyAdapter() {
@@ -147,36 +167,19 @@ public class World extends Observable {
             @Override
             public void keyPressed(KeyEvent e) {
                 super.keyPressed(e);
-                if (e.getKeyCode() == KeyEvent.VK_W) {
-                    moveUpCommandP1.execute();
-                } else if (e.getKeyCode() == KeyEvent.VK_S) {
-                    moveDownCommandP1.execute();
-                } else if (e.getKeyCode() == KeyEvent.VK_A) {
-                    moveLeftCommandP1.execute();
-                } else if (e.getKeyCode() == KeyEvent.VK_D) {
-                    moveRightCommandP1.execute();
-                }
-
-                if (e.getKeyCode() == KeyEvent.VK_SHIFT && canShootP1) {
-                    // Check tank icon instead of tank direction for bullet orientation.
-                    String direction;
-                    Icon tankIcon = player1.getIcon();
-                    if (tankIcon == TankSprites.player1SpriteUp) {
-                        direction = "UP";
+                if (Director.getInstance().onGoing) {
+                    if (e.getKeyCode() == KeyEvent.VK_W) {
+                        moveUpCommandP1.execute();
+                    } else if (e.getKeyCode() == KeyEvent.VK_S) {
+                        moveDownCommandP1.execute();
+                    } else if (e.getKeyCode() == KeyEvent.VK_A) {
+                        moveLeftCommandP1.execute();
+                    } else if (e.getKeyCode() == KeyEvent.VK_D) {
+                        moveRightCommandP1.execute();
                     }
-                    else if (tankIcon == TankSprites.player1SpriteDown) {
-                        direction = "DOWN";
+                    if (e.getKeyCode() == KeyEvent.VK_SHIFT) {
+                        createShell(player1, "FRIENDLY");
                     }
-                    else if (player1.getIcon() == TankSprites.player1SpriteLeft) {
-                        direction = "LEFT";
-                    }
-                    else {
-                        direction = "RIGHT";
-                    }
-
-                    TankShell shell = new TankShell(player1.getX(), player1.getY(), direction, "FRIENDLY");
-                    rootPanel.add(shell);
-                    reload(1);
                 }
             }
         });
@@ -186,97 +189,146 @@ public class World extends Observable {
                 @Override
                 public void keyPressed(KeyEvent e) {
                     super.keyPressed(e);
-                    if (e.getKeyCode() == KeyEvent.VK_UP) {
-                        moveUpCommandP2.execute();
-                    } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
-                        moveDownCommandP2.execute();
-                    } else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
-                        moveLeftCommandP2.execute();
-                    } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
-                        moveRightCommandP2.execute();
-                    }
-
-                    if (e.getKeyCode() == KeyEvent.VK_SPACE && canShootP2) {
-                        // Check tank icon instead of tank direction for bullet orientation.
-                        String direction;
-                        Icon tankIcon = player2.getIcon();
-                        if (tankIcon == TankSprites.player2SpriteUp) {
-                            direction = "UP";
+                    if (Director.getInstance().onGoing) {
+                        if (e.getKeyCode() == KeyEvent.VK_UP) {
+                            moveUpCommandP2.execute();
+                        } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                            moveDownCommandP2.execute();
+                        } else if (e.getKeyCode() == KeyEvent.VK_LEFT) {
+                            moveLeftCommandP2.execute();
+                        } else if (e.getKeyCode() == KeyEvent.VK_RIGHT) {
+                            moveRightCommandP2.execute();
                         }
-                        else if (tankIcon == TankSprites.player2SpriteDown) {
-                            direction = "DOWN";
+                        if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+                            createShell(player2, "FRIENDLY");
                         }
-                        else if (player2.getIcon() == TankSprites.player2SpriteLeft) {
-                            direction = "LEFT";
-                        }
-                        else {
-                            direction = "RIGHT";
-                        }
-
-                        TankShell shell = new TankShell(player2.getX(), player2.getY(), direction, "FRIENDLY");
-                        rootPanel.add(shell);
-                        reload(2);
                     }
                 }
             });
         }
     }
 
-    private void reload(int playerNumber) {
+    private void createShell(GenericTank tank, String friendly) {
+        // Check tank icon instead of tank direction for bullet orientation.
+        if (!tank.reloading) {
+            String direction;
+            Icon tankIcon = tank.getIcon();
+            if (tankIcon.toString().contains("Up")) {
+                direction = "UP";
+            } else if (tankIcon.toString().contains("Down")) {
+                direction = "DOWN";
+            } else if (tankIcon.toString().contains("Left")) {
+                direction = "LEFT";
+            } else {
+                direction = "RIGHT";
+            }
+
+            TankShell shell = Director.getInstance().tankShellPool.requestShell(tank.getX(), tank.getY());
+            shell.setDirection(direction);
+
+            if (friendly.equals("FRIENDLY")) {
+                shell.setFriendly(true);
+            }
+
+            rootPanel.add(shell);
+            activeShells.add(shell);
+
+            shell.initBallistic();
+            reloadTank(tank);
+        }
+    }
+
+    private void reloadTank(GenericTank tank) {
         Thread thread = new Thread() {
             @Override
             public void run() {
-                if (playerNumber == 1) {
-                    canShootP1 = false;
-                }
-                else {
-                    canShootP2 = false;
-                }
+                tank.reloading = true;
+
                 try {
                     Thread.sleep(1000L * PlayerTank.reloadTime);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
-                if (playerNumber == 1) {
-                    canShootP1 = true;
-                }
-                else {
-                    canShootP2 = true;
-                }
+
+                tank.reloading = false;
             }
         };
         thread.start();
     }
 
     private void initCollisionChecker() {
+        // There has to be a better way to check collision between objects, but we don't have the time for that.
         Thread thread = new Thread() {
             @Override
             public void run() {
                 while (true) {
-                    for (int i = 0; i < tileLayout.length; i++) {
-                        for (int j = 0; j < tileLayout[i].length; j++) {
-                            if (tileLayout[i][j] != null) {
-                                checkCollision(i, j, player1);
-                                if (Objects.equals(mode, "mp")) {
-                                    checkCollision(i, j, player2);
-                                }
-                            }
-                        }
-                    }
+                    checkBorderCollision();
+                    checkTileCollision();
                 }
             }
         };
         thread.start();
     }
 
-    private void checkCollision(int i, int j, GenericTank tank) {
-        if (tank.getBounds().intersects(tileLayout[i][j].getBounds()) ||
-            tank.getX() >= rootPanel.getWidth() - 10 ||
-            tank.getY() >= rootPanel.getHeight() - 57 ||
-            tank.getX() <= 0 || tank.getY() <= 0)
+    private void checkBorderCollision() {
+        if(player1.getX() >= rootPanel.getWidth() - 57 ||
+           player1.getY() >= rootPanel.getHeight() - 57 ||
+           player1.getX() <= 0 || player1.getY() <= 0)
+        {
+            stopTankCollided(player1.getDirection(), player1);
+        }
+
+        if (mode.equals("mp")) {
+            if (player2.getX() >= rootPanel.getWidth() - 57 ||
+                player2.getY() >= rootPanel.getHeight() - 57 ||
+                player2.getX() <= 0 || player2.getY() <= 0)
+            {
+                stopTankCollided(player2.getDirection(), player2);
+            }
+        }
+    }
+
+    private void checkTileCollision() {
+        for (int i = 0; i < tileLayout.length; i++) {
+            for (int j = 0; j < tileLayout[i].length; j++) {
+                if (tileLayout[i][j] != null) {
+                    checkTankTileCollision(i, j, player1);
+                    if (Objects.equals(mode, "mp")) {
+                        checkTankTileCollision(i, j, player2);
+                    }
+                    checkShellTileCollision(i, j);
+                }
+            }
+        }
+    }
+
+    private void checkTankTileCollision(int i, int j, GenericTank tank) {
+        // Checks the collision between a tank and a tile.
+        if (tank.getBounds().intersects(tileLayout[i][j].getBounds()) && tileLayout[i][j].isSolid)
         {
             String direction = tank.getDirection();
             stopTankCollided(direction, tank);
+        }
+    }
+
+    private void checkShellTileCollision(int i, int j) {
+        // Checks the collision between a shell and a tile.
+        List<TankShell> inactiveShells = new ArrayList<>();
+
+        for (TankShell shell : activeShells) {
+            if (shell.getBounds().intersects(tileLayout[i][j].getBounds()) && tileLayout[i][j].isSolid) {
+                inactiveShells.add(shell);
+                tileLayout[i][j].destroy();
+
+                if (tileLayout[i][j] instanceof HeadquarterTile) {
+                    setChanged();
+                    notifyObservers();
+                }
+            }
+        }
+        for (TankShell inactiveShell : inactiveShells) {
+            inactiveShell.setInactive();
+            activeShells.remove(inactiveShell);
         }
     }
 

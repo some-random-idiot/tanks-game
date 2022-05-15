@@ -4,7 +4,7 @@ import javax.swing.*;
 import java.awt.*;
 
 public class Main {
-    private static final Director director = new Director();
+    private static final Director director = Director.getInstance();
 
     private static void initMenu() {
         JFrame menuWindow = new JFrame("Welcome to TANKS!");
@@ -23,14 +23,18 @@ public class Main {
 
         JButton singleplayerButton = new JButton("Singleplayer");
         singleplayerButton.addActionListener(e -> {
-            director.start("sp");
+            if (!Director.getInstance().onGoing) {
+                director.start("sp");
+            }
         }
         );
 
         JButton multiplayerButton = new JButton("Multiplayer");
         multiplayerButton.addActionListener(e -> {
-                    director.start("mp");
-                }
+            if (!Director.getInstance().onGoing) {
+                director.start("mp");
+            }
+        }
         );
 
         JButton exitButton = new JButton("Exit");

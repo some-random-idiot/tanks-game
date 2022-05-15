@@ -3,6 +3,8 @@ package tanks;
 import javax.swing.*;
 
 public abstract class GenericTank extends JLabel {
+    public boolean reloading = false;
+
     public void initPositionUpdater() {
 
     }
@@ -24,6 +26,10 @@ public abstract class GenericTank extends JLabel {
     }
 
     public void stop() {
+
+    }
+
+    public void resetOrientation() {
 
     }
 

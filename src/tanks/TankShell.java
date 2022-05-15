@@ -46,10 +46,10 @@ public class TankShell extends JLabel {
             public void run() {
                 while (isActive) {
                     switch (direction) {
-                        case "UP" -> setBounds(getX(), getY() - speed, 64, 64);
-                        case "DOWN" -> setBounds(getX(), getY() + speed, 64, 64);
-                        case "LEFT" -> setBounds(getX() - speed, getY(), 64, 64);
-                        case "RIGHT" -> setBounds(getX() + speed, getY(), 64, 64);
+                        case "UP" -> setBounds(getX(), getY() - speed, getWidth(), getHeight());
+                        case "DOWN" -> setBounds(getX(), getY() + speed, getWidth(),  getHeight());
+                        case "LEFT" -> setBounds(getX() - speed, getY(), getWidth(),  getHeight());
+                        case "RIGHT" -> setBounds(getX() + speed, getY(), getWidth(),  getHeight());
                     }
 
                     try {
@@ -63,7 +63,8 @@ public class TankShell extends JLabel {
         thread.start();
     }
 
-    public void stopBallistic() {
+    public void setInactive() {
         isActive = false;
+        setBounds(-999, -999, getWidth(), getHeight());
     }
 }

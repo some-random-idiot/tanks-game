@@ -118,4 +118,13 @@ public class PlayerTank extends GenericTank {
     public void stop() {
         direction = "IDLE";
     }
+
+    @Override
+    public void resetOrientation() {
+        direction = "IDLE";
+        switch (playerNumber) {
+            case 1 -> setIcon(TankSprites.player1SpriteUp);
+            case 2 -> setIcon(TankSprites.player2SpriteUp);
+        }
+    }
 }
