@@ -6,32 +6,45 @@ import javax.swing.*;
 
 public class TankShell extends JLabel {
     private final int speed = 2;
-    private final String direction;
-    public boolean friendly = false;
+    private boolean isActive = false;
 
-    public TankShell(int x, int y, String direction, String friendly) {
-        super();
+    public String getDirection() {
+        return direction;
+    }
+
+    public void setDirection(String direction) {
         switch (direction) {
             case "UP" -> setIcon(TankSprites.shellSpriteUp);
             case "DOWN" -> setIcon(TankSprites.shellSpriteDown);
             case "LEFT" -> setIcon(TankSprites.shellSpriteLeft);
             case "RIGHT" -> setIcon(TankSprites.shellSpriteRight);
         }
-        setBounds(x, y, 64, 64);
         this.direction = direction;
+    }
 
-        if (friendly.equals("FRIENDLY")) {
-            this.friendly = true;
-        }
+    private String direction;
 
-        initBallistic();
+    public boolean isFriendly() {
+        return friendly;
+    }
+
+    public void setFriendly(boolean friendly) {
+        this.friendly = friendly;
+    }
+
+    public boolean friendly = false;
+
+    public TankShell(int x, int y) {
+        super();
+        setBounds(x, y, 60, 60);
     }
 
     public void initBallistic() {
+        isActive = true;
         Thread thread = new Thread() {
             @Override
             public void run() {
-                while (true) {
+                while (isActive) {
                     switch (direction) {
                         case "UP" -> setBounds(getX(), getY() - speed, 64, 64);
                         case "DOWN" -> setBounds(getX(), getY() + speed, 64, 64);
@@ -48,5 +61,9 @@ public class TankShell extends JLabel {
             }
         };
         thread.start();
+    }
+
+    public void stopBallistic() {
+        isActive = false;
     }
 }
