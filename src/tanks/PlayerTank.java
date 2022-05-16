@@ -1,16 +1,7 @@
 package tanks;
 
-import game.Director;
-
 public class PlayerTank extends GenericTank {
     private final int playerNumber;
-    private final int speed = 1;
-    public static int reloadTime = 3; // In seconds.
-    private String direction = "IDLE";
-
-    public String getDirection() {
-        return direction;
-    }
 
     public PlayerTank(int x, int y, int playerNumber) {
         super();
@@ -21,39 +12,14 @@ public class PlayerTank extends GenericTank {
             case 2 -> setIcon(TankSprites.player2SpriteUp);
         }
 
-        setBounds(x, y, 60, 60);
+        setBounds(x, y, 62, 62);
         initPositionUpdater();
-    }
-
-    @Override
-    public void initPositionUpdater() {
-        Thread thread = new Thread() {
-            // Update the position of the tank.
-            @Override
-            public void run() {
-                while (true) {
-                    switch (direction) {
-                        case "UP" -> setBounds(getX(), getY() - speed, getWidth(), getWidth());
-                        case "DOWN" -> setBounds(getX(), getY() + speed, getWidth(), getWidth());
-                        case "LEFT" -> setBounds(getX() - speed, getY(), getWidth(), getWidth());
-                        case "RIGHT" -> setBounds(getX() + speed, getY(), getWidth(), getWidth());
-                    }
-
-                    try {
-                        Thread.sleep(Director.frameRate);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-        };
-        thread.start();
     }
 
     @Override
     public void moveUp() {
         if (direction.equals("DOWN")) {
-            stop();
+            brake();
             return;
         }
 
@@ -69,7 +35,7 @@ public class PlayerTank extends GenericTank {
     @Override
     public void moveDown() {
         if (direction.equals("UP")) {
-            stop();
+            brake();
             return;
         }
 
@@ -85,7 +51,7 @@ public class PlayerTank extends GenericTank {
     @Override
     public void moveLeft() {
         if (direction.equals("RIGHT")) {
-            stop();
+            brake();
             return;
         }
 
@@ -101,7 +67,7 @@ public class PlayerTank extends GenericTank {
     @Override
     public void moveRight() {
         if (direction.equals("LEFT")) {
-            stop();
+            brake();
             return;
         }
 
@@ -115,16 +81,18 @@ public class PlayerTank extends GenericTank {
     }
 
     @Override
-    public void stop() {
-        direction = "IDLE";
-    }
-
-    @Override
     public void resetOrientation() {
         direction = "IDLE";
         switch (playerNumber) {
             case 1 -> setIcon(TankSprites.player1SpriteUp);
             case 2 -> setIcon(TankSprites.player2SpriteUp);
+        }
+    }
+
+    public void revive() {
+        if (!isAlive) {
+            isAlive = true;
+            initPositionUpdater();
         }
     }
 }

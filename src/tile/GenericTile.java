@@ -10,8 +10,10 @@ public abstract class GenericTile extends JLabel {
     }
 
     public void destroy() {
-        isSolid = false;
-        setVisible(false);
+        if (isBreakable) {
+            isSolid = false;
+            setVisible(false);
+        }
     }
 
     public void reset() {

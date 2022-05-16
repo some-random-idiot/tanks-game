@@ -40,6 +40,7 @@ public class World extends Observable {
 
     private PlayerTank player1;
     private PlayerTank player2;
+    private List<BotTank> botTanks = new ArrayList<>();
 
     private MoveUpCommand moveUpCommandP1, moveUpCommandP2;
     private MoveDownCommand moveDownCommandP1, moveDownCommandP2;
@@ -52,17 +53,19 @@ public class World extends Observable {
         this.mode = mode;
 
         initWindow();
+        initFrameWatcher();
         initLevel();
         setKeyBindings();
+        spawnEnemies(Director.getInstance().wave);
+        initShootAI();
         initCollisionChecker();
 
-        rootWindow.add(rootPanel);
-        rootWindow.setVisible(true);
+        addObserver(Director.getInstance());
     }
 
     private void initWindow() {
         // Set up game window.
-        rootWindow = new JFrame("TANKS");
+        rootWindow = new JFrame("TANKS | Wave: " + Director.getInstance().wave);
         rootWindow.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         rootWindow.setSize(847, 803);
         rootWindow.setResizable(false);
@@ -70,6 +73,24 @@ public class World extends Observable {
         // Don't use layout managers. They make positioning stuff a headache.
         rootPanel = new JPanel(null);
         rootPanel.setBackground(Color.BLACK);
+
+        rootWindow.add(rootPanel);
+        rootWindow.setVisible(true);
+    }
+
+    private void initFrameWatcher() {
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                while (Director.getInstance().onGoing) {
+                    if (!rootWindow.isVisible()) {
+                        setChanged();
+                        notifyObservers("GAMESPACE_CLOSED");
+                    }
+                }
+            }
+        };
+        thread.start();
     }
 
     private void initLevel() {
@@ -134,8 +155,26 @@ public class World extends Observable {
     }
 
     public void reset() {
+        synchronized (botTanks) {
+            for (BotTank tank : botTanks) {
+                rootPanel.remove(tank);
+            }
+            botTanks.clear();
+        }
+
+        List<TankShell> inactiveShells = new ArrayList<>(activeShells);
+        for (TankShell inactiveShell : inactiveShells) {
+            activeShells.remove(inactiveShell);
+            inactiveShell.setInactive();
+            Director.getInstance().tankShellPool.releaseShell(inactiveShell);
+        }
+
         resetTiles();
         resetPlayers();
+        spawnEnemies(Director.getInstance().wave);
+        initShootAI();
+        initCollisionChecker();
+        rootWindow.setTitle("TANKS | Wave: " + Director.getInstance().wave);
     }
 
     private void resetTiles() {
@@ -153,12 +192,13 @@ public class World extends Observable {
         // Reset the players.
         player1.resetOrientation();
         player1.setBounds(p1Xinitial, p1Yinitial, player1.getWidth(), player1.getHeight());
+        player1.revive();
         if (mode.equals("mp")) {
             player2.resetOrientation();
             player2.setBounds(p2Xinitial, p2Yinitial, player2.getWidth(), player2.getHeight());
+            player2.revive();
         }
     }
-
 
     private void setKeyBindings() {
         // Set up key bindings.
@@ -208,9 +248,53 @@ public class World extends Observable {
         }
     }
 
+    public void spawnEnemies(int wave) {
+        // Spawn enemies.
+        for (int i = 0; i < initialLayout.length; i++) {
+            for (int j = 0; j < initialLayout[i].length; j++) {
+                if (Objects.equals(initialLayout[i][j], "x")) {
+                    BotTank botTank = new BotTank(j * 64, i * 64);
+                    synchronized (botTanks) {
+                        botTanks.add(botTank);
+                    }
+                    rootPanel.add(botTank);
+                }
+                wave--;
+                if (wave == 0) {
+                    return;
+                }
+            }
+        }
+    }
+
+    private void initShootAI() {
+        // Make enemies shoot in an interval.
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                while (Director.getInstance().onGoing) {
+                    synchronized (botTanks) {
+                        for (BotTank botTank : botTanks) {
+                            createShell(botTank, "ENEMY");
+                        }
+                    }
+
+                    // Need to give shoot AI a delay to prevent rapid shooting bug.
+                    try {
+                        Thread.sleep(1000);
+                    }
+                    catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        thread.start();
+    }
+
     private void createShell(GenericTank tank, String friendly) {
         // Check tank icon instead of tank direction for bullet orientation.
-        if (!tank.reloading) {
+        if (!tank.reloading && tank.isAlive) {
             String direction;
             Icon tankIcon = tank.getIcon();
             if (tankIcon.toString().contains("Up")) {
@@ -229,9 +313,16 @@ public class World extends Observable {
             if (friendly.equals("FRIENDLY")) {
                 shell.setFriendly(true);
             }
+            else {
+                // NEED TO EXPLICITLY SET TO FALSE SINCE WE ARE REUSING BULLETS.
+                shell.setFriendly(false);
+            }
 
             rootPanel.add(shell);
-            activeShells.add(shell);
+
+            synchronized (activeShells) {
+                activeShells.add(shell);
+            }
 
             shell.initBallistic();
             reloadTank(tank);
@@ -245,7 +336,7 @@ public class World extends Observable {
                 tank.reloading = true;
 
                 try {
-                    Thread.sleep(1000L * PlayerTank.reloadTime);
+                    Thread.sleep(1000L * GenericTank.reloadTime);
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 }
@@ -261,9 +352,11 @@ public class World extends Observable {
         Thread thread = new Thread() {
             @Override
             public void run() {
-                while (true) {
+                while (Director.getInstance().onGoing) {
                     checkBorderCollision();
                     checkTileCollision();
+                    checkTankRamTank();
+                    checkTankShot();
                 }
             }
         };
@@ -271,20 +364,44 @@ public class World extends Observable {
     }
 
     private void checkBorderCollision() {
-        if(player1.getX() >= rootPanel.getWidth() - 57 ||
-           player1.getY() >= rootPanel.getHeight() - 57 ||
-           player1.getX() <= 0 || player1.getY() <= 0)
+        if(player1.getX() > rootPanel.getWidth() - 57 ||
+           player1.getY() > rootPanel.getHeight() - 57 ||
+           player1.getX() < 0 || player1.getY() < 0)
         {
-            stopTankCollided(player1.getDirection(), player1);
+            stopTankCollided(player1.direction, player1);
         }
 
         if (mode.equals("mp")) {
-            if (player2.getX() >= rootPanel.getWidth() - 57 ||
-                player2.getY() >= rootPanel.getHeight() - 57 ||
-                player2.getX() <= 0 || player2.getY() <= 0)
+            if (player2.getX() > rootPanel.getWidth() - 57 ||
+                player2.getY() > rootPanel.getHeight() - 57 ||
+                player2.getX() < 0 || player2.getY() < 0)
             {
-                stopTankCollided(player2.getDirection(), player2);
+                stopTankCollided(player2.direction, player2);
             }
+        }
+        synchronized (botTanks) {
+            for (BotTank tank : botTanks) {
+                if (tank.getX() > rootPanel.getWidth() - 57 ||
+                        tank.getY() > rootPanel.getHeight() - 57 ||
+                        tank.getX() < 0 || tank.getY() < 0) {
+                    stopTankCollided(tank.direction, tank);
+                }
+            }
+        }
+
+        List<TankShell> inactiveShells = new ArrayList<>();
+        for (TankShell shell : activeShells) {
+            if (shell.getX() > rootPanel.getWidth() - 57 ||
+                shell.getY() > rootPanel.getHeight() - 57 ||
+                shell.getX() < 0 || shell.getY() < 0)
+            {
+                inactiveShells.add(shell);
+            }
+        }
+        for (TankShell inactiveShell : inactiveShells) {
+            activeShells.remove(inactiveShell);
+            inactiveShell.setInactive();
+            Director.getInstance().tankShellPool.releaseShell(inactiveShell);
         }
     }
 
@@ -296,6 +413,11 @@ public class World extends Observable {
                     if (Objects.equals(mode, "mp")) {
                         checkTankTileCollision(i, j, player2);
                     }
+                    synchronized (botTanks) {
+                        for (BotTank tank : botTanks) {
+                            checkTankTileCollision(i, j, tank);
+                        }
+                    }
                     checkShellTileCollision(i, j);
                 }
             }
@@ -306,7 +428,7 @@ public class World extends Observable {
         // Checks the collision between a tank and a tile.
         if (tank.getBounds().intersects(tileLayout[i][j].getBounds()) && tileLayout[i][j].isSolid)
         {
-            String direction = tank.getDirection();
+            String direction = tank.direction;
             stopTankCollided(direction, tank);
         }
     }
@@ -315,30 +437,132 @@ public class World extends Observable {
         // Checks the collision between a shell and a tile.
         List<TankShell> inactiveShells = new ArrayList<>();
 
-        for (TankShell shell : activeShells) {
-            if (shell.getBounds().intersects(tileLayout[i][j].getBounds()) && tileLayout[i][j].isSolid) {
-                inactiveShells.add(shell);
-                tileLayout[i][j].destroy();
+        synchronized (activeShells) {
+            for (TankShell shell : activeShells) {
+                if (shell.getBounds().intersects(tileLayout[i][j].getBounds()) && tileLayout[i][j].isSolid) {
+                    inactiveShells.add(shell);
+                    tileLayout[i][j].destroy();
 
-                if (tileLayout[i][j] instanceof HeadquarterTile) {
-                    setChanged();
-                    notifyObservers();
+                    if (tileLayout[i][j] instanceof HeadquarterTile) {
+                        setChanged();
+                        notifyObservers("GAME_OVER");
+                    }
                 }
             }
         }
+
         for (TankShell inactiveShell : inactiveShells) {
-            inactiveShell.setInactive();
             activeShells.remove(inactiveShell);
+            inactiveShell.setInactive();
+            Director.getInstance().tankShellPool.releaseShell(inactiveShell);
         }
     }
 
     private void stopTankCollided(String direction, GenericTank tank) {
-        tank.stop();
+        tank.brake();
         switch (direction) {
             case "UP" -> tank.setBounds(tank.getX(), tank.getY() + 3, tank.getWidth(), tank.getHeight());
             case "DOWN" -> tank.setBounds(tank.getX(), tank.getY() - 3, tank.getWidth(), tank.getHeight());
             case "LEFT" -> tank.setBounds(tank.getX() + 3, tank.getY(), tank.getWidth(), tank.getHeight());
             case "RIGHT" -> tank.setBounds(tank.getX() - 3, tank.getY(), tank.getWidth(), tank.getHeight());
+        }
+    }
+
+    private void checkTankRamTank() {
+        // Checks the collision between two player tanks.
+        if (mode.equals("mp")) {
+            if (player1.getBounds().intersects(player2.getBounds())) {
+                stopTankCollided(player1.direction, player1);
+                stopTankCollided(player2.direction, player2);
+            }
+            synchronized (botTanks) {
+                for (BotTank tank : botTanks) {
+                    if (player2.getBounds().intersects(tank.getBounds())) {
+                        stopTankCollided(player2.direction, player2);
+                        stopTankCollided(tank.direction, tank);
+                    }
+                }
+            }
+        }
+        // Checks the collision between a player 1 and a bot tank.
+        synchronized (botTanks) {
+            for (BotTank tank : botTanks) {
+                if (player1.getBounds().intersects(tank.getBounds())) {
+                    stopTankCollided(player1.direction, player1);
+                    stopTankCollided(tank.direction, tank);
+                }
+            }
+            // Check collision between a bot tank and a bot tank.
+            for (int i = 0; i < botTanks.size(); i++) {
+                for (int j = i + 1; j < botTanks.size(); j++) {
+                    if (botTanks.get(i).getBounds().intersects(botTanks.get(j).getBounds())) {
+                        stopTankCollided(botTanks.get(i).direction, botTanks.get(i));
+                        stopTankCollided(botTanks.get(j).direction, botTanks.get(j));
+                    }
+                }
+            }
+        }
+    }
+
+     private void checkTankShot() {
+        synchronized (activeShells) {
+            for (TankShell shell : activeShells) {
+                if (mode.equals("mp")) {
+                    if (!shell.friendly) {
+                        if (player1.getBounds().intersects(shell.getBounds())) {
+                            player1.destroy();
+                            shell.setInactive();
+                            Director.getInstance().tankShellPool.releaseShell(shell);
+                        }
+                        if (player2.getBounds().intersects(shell.getBounds())) {
+                            player2.destroy();
+                            shell.setInactive();
+                            Director.getInstance().tankShellPool.releaseShell(shell);
+                        }
+                    }
+                    if (!player1.isAlive && !player2.isAlive) {
+                        setChanged();
+                        notifyObservers("GAME_OVER");
+                        shell.setInactive();
+                    }
+                }
+                else {
+                    if (shell.getBounds().intersects(player1.getBounds()) && !shell.friendly) {
+                        player1.destroy();
+                        shell.setInactive();
+                        Director.getInstance().tankShellPool.releaseShell(shell);
+                        setChanged();
+                        notifyObservers("GAME_OVER");
+                    }
+                }
+                synchronized (botTanks) {
+                    for (BotTank tank : botTanks) {
+                        if (shell.getBounds().intersects(tank.getBounds())) {
+                            if (shell.friendly) {
+                                tank.destroy();
+                                shell.setInactive();
+                                Director.getInstance().tankShellPool.releaseShell(shell);
+                                setChanged();
+                                notifyObservers("BOT_TANK_DESTROYED");
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        boolean enemiesLeft = false;
+        synchronized (botTanks) {
+            for (BotTank tank : botTanks) {
+                if (tank.isAlive) {
+                    enemiesLeft = true;
+                    break;
+                }
+            }
+        }
+        if (!enemiesLeft) {
+            setChanged();
+            notifyObservers("WAVE_CLEARED");
         }
     }
 }
