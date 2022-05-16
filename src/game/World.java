@@ -157,7 +157,9 @@ public class World extends Observable {
     public void reset() {
         synchronized (botTanks) {
             for (BotTank tank : botTanks) {
+                tank.setVisible(false);
                 rootPanel.remove(tank);
+                rootPanel.validate();
             }
             botTanks.clear();
         }
