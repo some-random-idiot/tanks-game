@@ -1,7 +1,5 @@
 package game;
 
-import tanks.TankShellPool;
-
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -17,12 +15,10 @@ public class Director implements Observer {
     public int score;
     public int wave = 1;
     public volatile boolean onGoing = false;
-    public TankShellPool tankShellPool;
 
     public void start(String mode) {
         currentMode = mode;
         onGoing = true;
-        tankShellPool = new TankShellPool();
         world = new World(mode);
     }
 

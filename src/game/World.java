@@ -163,10 +163,8 @@ public class World extends Observable {
         }
 
         List<TankShell> inactiveShells = new ArrayList<>(activeShells);
-        for (TankShell inactiveShell : inactiveShells) {
-            activeShells.remove(inactiveShell);
-            inactiveShell.setInactive();
-            Director.getInstance().tankShellPool.releaseShell(inactiveShell);
+        synchronized (activeShells) {
+            removeShell(inactiveShells);
         }
 
         resetTiles();
@@ -258,8 +256,8 @@ public class World extends Observable {
                         botTanks.add(botTank);
                     }
                     rootPanel.add(botTank);
+                    wave--;
                 }
-                wave--;
                 if (wave == 0) {
                     return;
                 }
@@ -307,7 +305,7 @@ public class World extends Observable {
                 direction = "RIGHT";
             }
 
-            TankShell shell = Director.getInstance().tankShellPool.requestShell(tank.getX(), tank.getY());
+            TankShell shell = new TankShell(tank.getX(), tank.getY());
             shell.setDirection(direction);
 
             if (friendly.equals("FRIENDLY")) {
@@ -326,6 +324,15 @@ public class World extends Observable {
 
             shell.initBallistic();
             reloadTank(tank);
+        }
+    }
+
+    private void removeShell(List<TankShell> inactiveShells) {
+        for (TankShell inactiveShell : inactiveShells) {
+            inactiveShell.setVisible(false);
+            activeShells.remove(inactiveShell);
+            rootPanel.remove(inactiveShell);
+            rootPanel.validate();
         }
     }
 
@@ -390,18 +397,15 @@ public class World extends Observable {
         }
 
         List<TankShell> inactiveShells = new ArrayList<>();
-        for (TankShell shell : activeShells) {
-            if (shell.getX() > rootPanel.getWidth() - 57 ||
-                shell.getY() > rootPanel.getHeight() - 57 ||
-                shell.getX() < 0 || shell.getY() < 0)
-            {
-                inactiveShells.add(shell);
+        synchronized (activeShells) {
+            for (TankShell shell : activeShells) {
+                if (shell.getX() > rootPanel.getWidth() - 57 ||
+                        shell.getY() > rootPanel.getHeight() - 57 ||
+                        shell.getX() < 0 || shell.getY() < 0) {
+                    inactiveShells.add(shell);
+                }
             }
-        }
-        for (TankShell inactiveShell : inactiveShells) {
-            activeShells.remove(inactiveShell);
-            inactiveShell.setInactive();
-            Director.getInstance().tankShellPool.releaseShell(inactiveShell);
+            removeShell(inactiveShells);
         }
     }
 
@@ -449,12 +453,7 @@ public class World extends Observable {
                     }
                 }
             }
-        }
-
-        for (TankShell inactiveShell : inactiveShells) {
-            activeShells.remove(inactiveShell);
-            inactiveShell.setInactive();
-            Director.getInstance().tankShellPool.releaseShell(inactiveShell);
+            removeShell(inactiveShells);
         }
     }
 
@@ -505,32 +504,30 @@ public class World extends Observable {
     }
 
      private void checkTankShot() {
+        List<TankShell> inactiveShells = new ArrayList<>();
         synchronized (activeShells) {
             for (TankShell shell : activeShells) {
                 if (mode.equals("mp")) {
                     if (!shell.friendly) {
                         if (player1.getBounds().intersects(shell.getBounds())) {
                             player1.destroy();
-                            shell.setInactive();
-                            Director.getInstance().tankShellPool.releaseShell(shell);
+                            inactiveShells.add(shell);
                         }
                         if (player2.getBounds().intersects(shell.getBounds())) {
                             player2.destroy();
-                            shell.setInactive();
-                            Director.getInstance().tankShellPool.releaseShell(shell);
+                            inactiveShells.add(shell);
                         }
                     }
                     if (!player1.isAlive && !player2.isAlive) {
                         setChanged();
                         notifyObservers("GAME_OVER");
-                        shell.setInactive();
+                        inactiveShells.add(shell);
                     }
                 }
                 else {
                     if (shell.getBounds().intersects(player1.getBounds()) && !shell.friendly) {
                         player1.destroy();
-                        shell.setInactive();
-                        Director.getInstance().tankShellPool.releaseShell(shell);
+                        inactiveShells.add(shell);
                         setChanged();
                         notifyObservers("GAME_OVER");
                     }
@@ -541,7 +538,6 @@ public class World extends Observable {
                             if (shell.friendly) {
                                 tank.destroy();
                                 shell.setInactive();
-                                Director.getInstance().tankShellPool.releaseShell(shell);
                                 setChanged();
                                 notifyObservers("BOT_TANK_DESTROYED");
                             }
@@ -549,6 +545,7 @@ public class World extends Observable {
                     }
                 }
             }
+            removeShell(inactiveShells);
         }
 
         boolean enemiesLeft = false;
