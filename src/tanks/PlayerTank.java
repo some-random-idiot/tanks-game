@@ -12,7 +12,7 @@ public class PlayerTank extends GenericTank {
             case 2 -> setIcon(TankSprites.player2SpriteUp);
         }
 
-        setBounds(x, y, 62, 62);
+        setBounds(x, y, 60, 60);
         initPositionUpdater();
     }
 

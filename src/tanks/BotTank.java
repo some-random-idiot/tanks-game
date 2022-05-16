@@ -9,7 +9,7 @@ public class BotTank extends GenericTank {
         super();
 
         setIcon(TankSprites.botSpriteUp);
-        setBounds(x, y, 62, 62);
+        setBounds(x, y, 60, 60);
         initPositionUpdater();
         initAI();
     }

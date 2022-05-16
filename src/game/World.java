@@ -172,6 +172,7 @@ public class World extends Observable {
         spawnEnemies(Director.getInstance().wave);
         initShootAI();
         initCollisionChecker();
+        initFrameWatcher();
         rootWindow.setTitle("TANKS | Wave: " + Director.getInstance().wave);
     }
 
